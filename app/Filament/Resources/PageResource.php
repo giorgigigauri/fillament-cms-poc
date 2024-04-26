@@ -3,17 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PageResource\Pages;
-use App\Filament\Resources\PageResource\RelationManagers;
-use App\Models\ContentEntry;
 use App\Models\Page;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Builder;
+use HaydenPierce\ClassFinder\ClassFinder;
 
 class PageResource extends Resource
 {
@@ -21,20 +22,27 @@ class PageResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            Forms\Components\TextInput::make('name'),
-            Forms\Components\TextInput::make('slug'),
-            Forms\Components\Repeater::make('entries')->columnSpanFull()
-                ->schema([
-                Select::make('entry')
-                    ->options(ContentEntry::all()->pluck( 'name', 'id'))
-                    ->required(),
-            ])
-        ]);
-}
+    public static function form(Form $form): Form
+    {
+        $classes = ClassFinder::getClassesInNamespace('App\Filament\Blocks');
+
+        foreach($classes as $class) {
+            $block = new $class();
+            $fields = $block->getFields();
+            $blocks[] = Builder\Block::make($block->getName())
+                ->schema($fields);
+        }
+        return $form
+            ->schema([
+                Forms\Components\TextInput::make('name'),
+                Forms\Components\TextInput::make('slug'),
+                Builder::make('content')->columnSpanFull()
+                    ->blocks($blocks)
+
+
+
+            ]);
+    }
 
     public static function table(Table $table): Table
     {
